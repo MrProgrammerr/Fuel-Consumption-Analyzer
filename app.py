@@ -65,7 +65,7 @@ if sheet_url:
                 Refills=("Fuel_Litres", "count"),
             ).reset_index()
 
-            monthly["Overall_Mileage"] = (monthly["Total_Distance"] / monthly["Total_Fuel"]).round(2)
+            monthly["Overall_Mileage"] = (monthly["Total_Distance"] / monthly["Total_Fuel_Litres"]).round(2)
 
             st.subheader("📊 Monthly Summary")
             st.dataframe(monthly)
