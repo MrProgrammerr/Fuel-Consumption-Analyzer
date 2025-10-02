@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+SKIP_FIRST_MILEAGE = 2
 
 st.set_page_config(page_title="Fuel Log Analyzer", layout="wide")
 
@@ -29,14 +30,23 @@ def load_data_from_gsheet(url: str) -> pd.DataFrame:
 if sheet_url:
     try:
         df = load_data_from_gsheet(sheet_url)
-        st.subheader("📋 Raw Data")
-        st.dataframe(df)
 
         # Validate columns
         expected_cols = {"Date", "Odometer", "Fuel_Litres", "Amount_Spent"}
         if not expected_cols.issubset(set(df.columns)):
             st.error(f"Missing required columns. Required: {expected_cols}. Found columns: {df.columns.tolist()}")
         else:
+            total_litres = df["Fuel_Litres"].sum()
+            total_spent = df["Amount_Spent"].sum()
+            total_distance = list(df["Odometer"])[-1]
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric(label="📍 Total Distance (km)", value=f"{total_distance:,.2f}")
+            with col2:
+                st.metric(label="⛽ Fuel (Litres)", value=f"{total_litres:,.2f}")
+            with col3:
+                st.metric(label="💰 Total Spent", value=f"₹ {total_spent:,.2f}")
+
             # Parse date
             df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m", errors="coerce")
             if df["Date"].isna().any():
@@ -50,6 +60,13 @@ if sheet_url:
                 lambda row: round(row["Distance"] / row["Fuel_Litres"], 2) if row["Fuel_Litres"] and row["Fuel_Litres"] != 0 else 0,
                 axis=1
             )
+
+            avg_mileage = sum(list(df["Mileage_kmpl"])[SKIP_FIRST_MILEAGE:]) / (len(df)-SKIP_FIRST_MILEAGE)
+            with col4:
+                st.metric(label="⚡ Mileage (km/L)", value=f"{avg_mileage:,.2f}")
+
+            st.subheader("📋 Raw Data")
+            st.dataframe(df)
 
             # Month period
             df["Month"] = df["Date"].dt.to_period("M")
